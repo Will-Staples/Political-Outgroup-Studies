@@ -1,0 +1,2246 @@
+---
+title: "Motivated Cog Manuscript source file"
+author: "William Staples"
+date: "2023-03-07"
+output: html_document
+---
+---
+title: "Jason Doc"
+author: "William Staples"
+date: "2022-12-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = FALSE)
+```
+
+## Project Overview
+
+### Pilot Study (Study 1)
+
+-   Manipulate actor political affiliation via vignettes.
+-   Assessed participant political affiliation with slider only.
+-   Used 17 item MJI.
+
+### Replication 1 (Study 2)
+
+-   Manipulate actor political affiliation via vignettes.
+-   Assessed participant political affiliation with slider only.
+-   Used 17 item MJI.
+
+### Replication 2 (Study 3)
+
+-   Manipulate actor political "team" affiliation via twitter posts.
+-   Assessed participant political orientation with a slider and the ABPC.
+-   Used 2 Factor MJI
+
+### Replication 3 (Study 4)
+
+-   Doubled the sample size form study 3
+-   Manipulate actor political "team" affiliation via twitter posts.
+-   Assessed participant political orientation with a slider and the ABPC.
+-   Used 2 Factor MJI
+
+### Combined Study 3 & Study 4
+
+-   Doubled data from study 3 and study 4
+-   Manipulate actor political "team" affiliation via twitter posts.
+-   Assessed participant political orientation with a slider and the ABPC.
+-   Used 2 Factor MJI
+
+```{r, Import Libraries and Data, echo=FALSE, include=FALSE, warning=FALSE}
+library(nFactors)
+library(tidyverse)
+library(gridExtra)
+library(yhat)
+library(ltm)
+library(rlang)
+library(readr)
+library(pwr)
+library(lavaan)
+library(semPlot)
+library(rockchalk)
+library(e1071) 
+library(lm.beta) 
+library(ggcorrplot)
+
+dat3 <- read_csv("C:/Users/bacon/OneDrive/Desktop/PhD/Studies/Political outgtoup study/Datasets/PIDI_POL_Rep_3.csv", 
+    col_types = cols(age = col_number(), 
+        gndr = col_character(), 
+        race = col_character(),
+        relstat = col_character(),
+        work = col_character(),
+        edu = col_character(),))
+
+dat4 <- read_csv('C:/Users/bacon/OneDrive/Desktop/PhD/Studies/Political outgtoup study/Datasets/PIDI_POL_Rep 4.csv', 
+    col_types = cols(age = col_number(), 
+        gndr = col_character(), 
+        race = col_character(),
+        relstat = col_character(),
+        work = col_character(),
+        edu = col_character(),))
+```
+
+```{r, recode dat3, echo=FALSE, include=FALSE, warning=FALSE}
+#work
+dat3$work <- recode(dat3$work, "Unemployed (Currently looking)" = "Ucl", "Student" = "Stu", "Full-time" = "FT", "Part-time" = "PT", "Self-employed" = "SE", "Stay at home parent" = "SaHP", "Unemployed (not currently looking)" = "Ucl", "Retired" = "RT", "Unable to work" = "UtW")
+
+#race
+dat3$race <- recode(dat3$race, "White" = "W", "Asian/Pacific Islander" = "API", "Hispanic or Latino/Latina/Latinx" = "H/L", "Black" = "B", "Indigenous" = "I", "Other" = "O", "Biracial/Mixed" = "Bi")
+
+#edu
+dat3$edu <- recode(dat3$edu, "Less than a high school diploma" = "<HS", "College Diploma" = "Col", "High school diploma or equivalent" = "HS", "Bachelor’s degree" = "BA", "Master’s degree" = "MA", "Doctorate" = "PhD", "Associate's Degree" = "AD", "Other (please specify)" = "O")
+
+#relstat
+dat3$relstat <- recode(dat3$relstat, "Single (never married)" = "Snm", "In a domestic partnership (dating, etc.)" = "Dat", "Married" = "M", "Divorced" = "Div", "Widowed" = "W")
+
+#gndr
+dat3$gndr <- recode(dat3$gndr, "Man" = "M", "Woman" = "W", "Prefer not to say" = "PnS", "Other" = "O", "Non-Binary or Genderqueer" = "NB")
+
+#Tweets
+dat3$tweets <- recode(dat3$tweets, "TweetsL" = "L", "TweetsR" = "R")
+
+
+#### ABPC ####
+dat3$abpc.9 <- recode(dat3$abpc.9, "Strongly agree" = 5,
+                     "Somewhat agree" = 4,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 2,
+                     "Strongly disagree" = 1)
+dat3$abpc.12 <- recode(dat3$abpc.12, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.13 <- recode(dat3$abpc.13, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.14 <- recode(dat3$abpc.14, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.15 <- recode(dat3$abpc.15, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.16 <- recode(dat3$abpc.16, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.17 <- recode(dat3$abpc.17, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.21 <- recode(dat3$abpc.21, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.22 <- recode(dat3$abpc.22, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.23 <- recode(dat3$abpc.23, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.25 <- recode(dat3$abpc.25, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.26 <- recode(dat3$abpc.26, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.27 <- recode(dat3$abpc.27, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.28 <- recode(dat3$abpc.28, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.29 <- recode(dat3$abpc.29, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.31 <- recode(dat3$abpc.31, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.32 <- recode(dat3$abpc.32, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+dat3$abpc.33 <- recode(dat3$abpc.33, "Strongly agree" = 5,
+                      "Somewhat agree" = 4,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 2,
+                      "Strongly disagree" = 1)
+# Reverse coded ABPC items: 
+dat3$abpc.1 <- recode(dat3$abpc.1, "Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.2 <- recode(dat3$abpc.2, "Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.3 <- recode(dat3$abpc.3, "Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.4 <- recode(dat3$abpc.4, "Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.5 <- recode(dat3$abpc.5,"Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.6 <- recode(dat3$abpc.6, "Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.7 <- recode(dat3$abpc.7, "Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.8 <- recode(dat3$abpc.8, "Strongly agree" = 1,
+                     "Somewhat agree" = 2,
+                     "Neither agree nor disagree" = 3,
+                     "Somewhat disagree" = 4,
+                     "Strongly disagree" = 5)
+dat3$abpc.10 <- recode(dat3$abpc.10, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+dat3$abpc.11 <- recode(dat3$abpc.11, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+dat3$abpc.13 <- recode(dat3$abpc.13, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+dat3$abpc.18 <- recode(dat3$abpc.18, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+dat3$abpc.19 <- recode(dat3$abpc.19, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+dat3$abpc.20 <- recode(dat3$abpc.20, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+dat3$abpc.24 <- recode(dat3$abpc.24, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+dat3$abpc.30 <- recode(dat3$abpc.30, "Strongly agree" = 1,
+                      "Somewhat agree" = 2,
+                      "Neither agree nor disagree" = 3,
+                      "Somewhat disagree" = 4,
+                      "Strongly disagree" = 5)
+#### 2 Factor MJI ####
+dat3$F1.1 <- recode(dat3$F1.1,
+                   "Very intentional" = 5,
+                   "Mostly intentional" = 4,
+                   "Neither Intentional nor unintentional" = 3,
+                   "Somewhat intentional" = 2,
+                   "Not at all intentional" = 1)
+
+dat3$F1.2 <- recode(dat3$F1.2, "Entirely on purpose" = 5,
+                   "Mostly on purpose" = 4,
+                   "Moderately on purpose" = 3,
+                   "Somewhat on purpose" = 2,
+                   "Not at all on purpose" = 1)
+
+#reverse coded
+dat3$F2.1 <- recode(dat3$F2.1,
+                   "Extremely positively" = 1,
+                   "Positively" = 2,
+                   "Moderately positively" = 3,
+                   "Slightly positively" = 4,
+                   "Not at all positively" = 5)
+
+dat3$F2.2 <- recode(dat3$F2.2,
+                   "Extremely negatively" = 5,
+                   "Negatively" = 4,
+                   "Moderately negatively" = 3,
+                   "Slightly negatively" = 2,
+                   "Not at all negatively" = 1)
+
+dat3$F2.3 <- recode(dat3$F2.3,
+                   "A lot of blame" = 5,
+                   "A modest amount of blame" = 4,
+                   "Some blame" = 3,
+                   "Very little blame" = 2,
+                   "No blame" = 1)
+
+dat3$F2.4 <- recode(dat3$F2.4,
+                   "Strongly Agree" = 5,
+                   "Agree" = 4,
+                   "Neither agree nor disagree" = 3,
+                   "Disagree" = 2,
+                   "Strongly disagree" = 1)
+
+```
+
+```{r, recode dat4, echo=FALSE, include=FALSE, warning=FALSE}
+#work
+dat4$work <- recode(dat4$work, "11" = "Ucl", "14" = "Stu", "1" = "FT", "10" = "PT", "16" = "SE", "13" = "SaHP", "12" = "Ucl", "15" = "RT", "17" = "UtW")
+
+#race
+dat4$race <- recode(dat4$race, "1" = "W", "11" = "API", "8" = "H/L", "9" = "B", "10" = "I", "12" = "O", "13" = "Bi")
+
+#edu
+dat4$edu <- recode(dat4$edu, "1" = "<HS", "13" = "Col", "7" = "HS", "8" = "BA", "9" = "MA", "10" = "PhD", "12" = "AD", "11" = "O")
+
+#relstat
+dat4$relstat <- recode(dat4$relstat, "1" = "Snm", "7" = "Dat", "6" = "M", "8" = "Div", "9" = "W")
+
+#gndr
+dat4$gndr <- recode(dat4$gndr, "1" = "M", "5" = "W", "7" = "PnS", "6" = "O", "8" = "NB", "10" = "Tm", "11" = "Tw")
+
+#### ABPC ####
+dat4$abpc.9 <- recode(dat4$abpc.9, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.12 <- recode(dat4$abpc.12, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.13 <- recode(dat4$abpc.13, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.14 <- recode(dat4$abpc.14, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.15 <- recode(dat4$abpc.15, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.16 <- recode(dat4$abpc.16, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.17 <- recode(dat4$abpc.17, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.21 <- recode(dat4$abpc.21, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.22 <- recode(dat4$abpc.22, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.23 <- recode(dat4$abpc.23, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.25 <- recode(dat4$abpc.25, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.26 <- recode(dat4$abpc.26, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.27 <- recode(dat4$abpc.27, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.28 <- recode(dat4$abpc.28, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.29 <- recode(dat4$abpc.29, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.31 <- recode(dat4$abpc.31, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.32 <- recode(dat4$abpc.32, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+dat4$abpc.33 <- recode(dat4$abpc.33, "12" = 5,
+                     "11" = 4,
+                     "10" = 3,
+                     "9" = 2,
+                     "8" = 1)
+# Reverse coded ABPC items: 
+dat4$abpc.1 <- recode(dat4$abpc.1, "12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.2 <- recode(dat4$abpc.2, "12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.3 <- recode(dat4$abpc.3,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.4 <- recode(dat4$abpc.4,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.5 <- recode(dat4$abpc.5,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.6 <- recode(dat4$abpc.6,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.7 <- recode(dat4$abpc.7,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.8 <- recode(dat4$abpc.8,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.10 <- recode(dat4$abpc.10, "12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.11 <- recode(dat4$abpc.11,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.13 <- recode(dat4$abpc.13,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.18 <- recode(dat4$abpc.18,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.19 <- recode(dat4$abpc.19,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.20 <- recode(dat4$abpc.20,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.24 <- recode(dat4$abpc.24,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+dat4$abpc.30 <- recode(dat4$abpc.30,"12" = 1,
+                     "11" = 2,
+                     "10" = 3,
+                     "9" = 4,
+                     "8" = 5)
+#### 2 Factor MJI ####
+dat4$F1.1 <- recode(dat4$F1.1,
+                   "Very intentional" = 5,
+                   "Mostly intentional" = 4,
+                   "Neither Intentional nor unintentional" = 3,
+                   "Somewhat intentional" = 2,
+                   "Not at all intentional" = 1)
+
+dat4$F1.2 <- recode(dat4$F1.2, "Entirely on purpose" = 5,
+                   "Mostly on purpose" = 4,
+                   "Moderately on purpose" = 3,
+                   "Somewhat on purpose" = 2,
+                   "Not at all on purpose" = 1)
+
+#reverse coded
+dat4$F2.1 <- recode(dat4$F2.1,
+                   "Extremely positively" = 1,
+                   "Positively" = 2,
+                   "Moderately positively" = 3,
+                   "Slightly positively" = 4,
+                   "Not at all positively" = 5)
+
+dat4$F2.2 <- recode(dat4$F2.2,
+                   "Extremely negatively" = 5,
+                   "Negatively" = 4,
+                   "Moderately negatively" = 3,
+                   "Slightly negatively" = 2,
+                   "Not at all negatively" = 1)
+
+dat4$F2.3 <- recode(dat4$F2.3,
+                   "6" = 5,
+                   "5" = 4,
+                   "4" = 3,
+                   "Very little blame" = 2,
+                   "No blame" = 1)
+
+dat4$F2.4 <- recode(dat4$F2.4,
+                   "Strongly Agree" = 5,
+                   "Agree" = 4,
+                   "Neither agree nor disagree" = 3,
+                   "Disagree" = 2,
+                   "Strongly disagree" = 1)
+
+# rename col
+dat3 <- rename(dat3, polornt = polornt_16)
+```
+
+```{r, Aggregating dat3 and dat4 ,echo=FALSE}
+dat <- bind_rows(dat3, dat4)
+DatT1 <- nrow(dat)
+```
+
+```{r, Data Cleaning / Preparation, echo=FALSE, include=FALSE}
+# Eliminate "-99" 
+dat <- dat[dat$polornt != "-99", ]
+dat <- na.omit(dat)
+
+# Eliminate polornt "0" 
+dat <- dat[dat$polornt != 0, ]
+
+# Eliminate polornt "100" 
+dat <- dat[dat$polornt != 100, ]
+
+# Dummy code
+dat$PI <- ifelse(dat$PI == 1, "1", "-1")
+dat$DI <- ifelse(dat$DI == 1, "1", "-1")
+
+# create MJI & ABPC columns (no F2.1, no F2.4)
+dat.mji <- data.frame(dat$F1.1, dat$F1.2, dat$F2.2, dat$F2.3)
+dat$mji <- rowMeans(dat.mji)
+
+# create MJI column (with F2.1 and F2.4)
+dat.mji.full <- data.frame(dat$F1.1, dat$F1.2, dat$F2.1, dat$F2.2, dat$F2.3, dat$F2.4)
+dat$mji.full <- rowMeans(dat.mji.full)
+
+# Eliminate mji < 0
+dat <- dat[dat$mji >= 0, ]
+
+# continue to create MJI & ABPC columns
+dat.mji.F1 <- data.frame(dat$F1.1, dat$F1.2)
+dat$mji.F1 <- rowMeans(dat.mji.F1)
+dat <- dat[dat$mji.F1 >= 0, ]
+
+dat.mji.F2 <- data.frame(dat$F2.2, dat$F2.3)
+dat$mji.F2 <- rowMeans(dat.mji.F2)
+dat <- dat[dat$mji.F2 >= 0, ]
+
+# Square transform data
+dat$sqr.mji <-(dat$mji)^2
+dat$sqr.mjif1 <- (dat$mji.F1)^2
+dat$sqr.mjif2 <- (dat$mji.F2)^2
+
+# log transformation 
+dat$log.mji <-log(dat$mji)
+dat$log.mji.F1 <- log(dat$mji.F1)
+dat$log.mji.F2 <- log(dat$mji.F2)
+
+
+dat.abpc1 <- data.frame(dat$abpc.1, dat$abpc.2, dat$abpc.3, dat$abpc.4,
+                        dat$abpc.5, dat$abpc.6, dat$abpc.7, dat$abpc.8,
+                        dat$abpc.9, dat$abpc.10, dat$abpc.11, dat$abpc.12,
+                        dat$abpc.13, dat$abpc.14, dat$abpc.15, dat$abpc.16,
+                        dat$abpc.17, dat$abpc.18)
+dat$abpc1 <- rowMeans(dat.abpc1)
+
+dat.abpc2 <- data.frame(dat$abpc.19, dat$abpc.20, dat$abpc.21, dat$abpc.22,
+                        dat$abpc.23, dat$abpc.24, dat$abpc.25, dat$abpc.26)
+dat$abpc2 <- rowMeans(dat.abpc2)
+
+dat.abpc3 <- data.frame(dat$abpc.27, dat$abpc.28, dat$abpc.29, dat$abpc.30,
+                        dat$abpc.31, dat$abpc.32, dat$abpc.33)
+dat$abpc3 <- rowMeans(dat.abpc3)
+
+dat.abpc <- data.frame(dat$abpc.1, dat$abpc.2, dat$abpc.3, dat$abpc.4,
+                       dat$abpc.5, dat$abpc.6, dat$abpc.7, dat$abpc.8,
+                       dat$abpc.9, dat$abpc.10, dat$abpc.11, dat$abpc.12,
+                       dat$abpc.13, dat$abpc.14, dat$abpc.15, dat$abpc.16,
+                       dat$abpc.17, dat$abpc.18, dat$abpc.19, dat$abpc.20, 
+                       dat$abpc.21, dat$abpc.22, dat$abpc.23, dat$abpc.24,
+                       dat$abpc.25, dat$abpc.26, dat$abpc.27, dat$abpc.28,
+                       dat$abpc.29, dat$abpc.30, dat$abpc.31, dat$abpc.32,
+                       dat$abpc.33)
+dat$abpc <- rowMeans(dat.abpc)
+
+#Eliminate abpc < 0
+dat <- dat[dat$abpc >= 0, ]
+dat <- dat[dat$abpc1 >= 0, ]
+dat <- dat[dat$abpc2 >= 0, ]
+dat <- dat[dat$abpc3 >= 0, ]
+
+# Get n
+DatT2 <- nrow(dat)
+nexclude <- DatT1 - DatT2
+
+# Generate median and +/- 1 SD for polornt, ABPC, MJI F1
+med.polornt <- median(dat$polornt)
+med.abpc <- median(dat$abpc)
+
+men.polornt <- mean(dat$polornt)
+men.abpc <- mean(dat$abpc)
+
+sd.polornt <- sd(dat$polornt)
+sd.abpc <- sd(dat$abpc)
+
+plus1SD.polornt <- med.polornt + sd.polornt
+plus1SD.abpc <- med.abpc + sd.abpc
+
+minus1SD.polornt <- med.polornt - sd.polornt
+minus1SD.abpc <- med.abpc - sd.abpc
+
+# Dat L.R
+dat$L.R <- ifelse(dat$polornt < med.polornt, "L", "R")
+
+dat$L.R.abpc <- ifelse(dat$abpc < med.abpc, "L", "R")
+
+# create ig.og column
+dat$ig.og <- ifelse(dat$tweets == "R" & dat$L.R == "R", "ig", 
+                    ifelse(dat$tweets == "L" & dat$L.R == "L", "ig", "og"))
+
+# Create MJI score for each factor w/ Log Transformation
+dat$mean.mjif1 <- (dat$F1.1 + dat$F1.2)/2
+dat$log.mjif1 <- log(dat$mean.mjif1)
+
+dat$mean.mjif2 <- (dat$F2.2 + dat$F2.3)/2
+dat$log.mjif2 <- log(dat$mean.mjif2)
+
+# Create datasets for visualization
+dat2 <- dat[, c("abpc", "abpc1", "abpc2", "abpc3", "mji", "mean.mjif1", "sqr.mji","sqr.mjif1", "sqr.mjif2", "mean.mjif2","log.mji.F1", "log.mji", "log.mji.F2", "polornt", "tweets", "Cond_int", "PI", "DI", "L.R")]
+
+dat.abpc.L <- dat2[dat2$abpc <= med.abpc, ]
+dat.abpc.R <- dat2[dat2$abpc > med.abpc, ]
+
+
+# Create political extreme column then split into a separate dataset
+dat$polxtrm <- ifelse(dat$polornt <= minus1SD.polornt | dat$polornt >= plus1SD.polornt, "xtrm", "cntr")
+dat.x <- dat[dat$polxtrm == "xtrm", ]  
+
+dat.x.l <- dat.x[dat.x$L.R == "L", ]
+dat.x.r <- dat.x[dat.x$L.R == "R", ]
+
+# Create ABPC subscale score columns
+# Masculine Independence
+dat$abpc.f1 <- (dat$abpc.1 + dat$abpc.2 + dat$abpc.3 + dat$abpc.4 + dat$abpc.5 +
+             dat$abpc.6 + dat$abpc.7 + dat$abpc.8 + dat$abpc.9 + dat$abpc.10 +
+             dat$abpc.11 +dat$abpc.12 + dat$abpc.13 + dat$abpc.14 +
+             dat$abpc.15 + dat$abpc.16 + dat$abpc.17 + dat$abpc.18)
+dat$abpc.mi <- dat$abpc.f1/18
+
+# Religious Traditionalism
+dat$abpc.f2 <- (dat$abpc.19 + dat$abpc.20 + dat$abpc.21 + dat$abpc.22 +
+             dat$abpc.23 + dat$abpc.24 + dat$abpc.25 + dat$abpc.26)
+dat$abpc.rt <- dat$abpc.f2/8
+
+# Ethnic Separateness
+dat$abpc.f3 <- (dat$abpc.27 + dat$abpc.28 + dat$abpc.29 + dat$abpc.30 +
+              dat$abpc.31 + dat$abpc.32 + dat$abpc.33)
+dat$abpc.es <- dat$abpc.f3/7
+
+# Generate median/mean for ABPC factors
+med.abpc.mi <- median(dat$abpc.mi)
+med.abpc.rt <- median(dat$abpc.rt)
+med.abpc.es <- median(dat$abpc.es)
+
+# Centering MJI
+dat$mc_mji <- dat$mji - mean(dat$mji)
+
+# Centering MJI F1
+dat$mc_mjif1 <- dat$mean.mjif1 - mean(dat$mean.mjif1)
+
+# Centering square transformed MJI F1
+dat$mc.sqr.mjif1 <- dat$sqr.mjif1 - mean(dat$sqr.mjif1)
+
+# Centering MJI F2
+dat$mc_mjif2 <- dat$mean.mjif2 - mean(dat$mean.mjif2)
+
+# Centering polornt
+dat$mc_polornt <- dat$polornt - mean(dat$polornt)
+
+# Useful stuff
+# Code used to determine the number of unique values in the data (or subsection of the data, as demonstrated below)
+sapply(lapply(subset(dat,abpc >= med.abpc.mi), unique), length)
+```
+
+## t-test polornt for both studies
+
+```{r, t.test dat3 and dat4}
+tt <- t.test(dat3$polornt, dat4$polornt)
+tt
+```
+
+## Demographics
+
+-   n = `r nrow(dat)`,
+-   n excluded:72
+    -   Incomplete survey = 9
+    -   Failed attn chk = 7
+    -   Duration (mean +/- 3 sd) = 5
+    -   Polont = 0 = 38
+    -   Polornt = 100 = 13
+
+-   Age:
+    -   Mean = `r mean(dat$age)` 
+    -   Median = `r median(dat$age)`
+    -   Standard deviation = `r sd(dat$age)`
+    -   Oldest = `r max(dat$age)` 
+    -   Youngest = `r min(dat$age)`
+
+-   Political orientation (0 = Far left & 100 = Far Right)
+    -   Median polornt = `r med.polornt`
+    -   Median ABPC = `r med.abpc`
+    -   Mean polornt = `r men.polornt`
+    -   Mean ABPC = `r men.abpc`
+-   Gender
+    - Men = `r sum(dat$gndr == "M")`
+    - Women = `r sum(dat$gndr == "M")`
+    - NB = `r sum(dat$gndr == "NB")`
+    - Other = `r sum(dat$gndr != "M" & dat$gndr != "W" & dat$gndr != "NB")`
+
+-   Race
+    - White = `r sum(dat$race == "W")`
+    - Hisp/Lat = `r sum(dat$race == "H/L")`
+    - Biracial = `r sum(dat$race == "Bi")`
+    - Black = `r sum(dat$race == "B")`
+    - Asian/PI = `r sum(dat$race == "API")`
+    - Other = `r sum(dat$race != "W" & dat$race != "H/L" & dat$race != "Bi" & dat$race != "B" & dat$race != "API")`
+
+-   Education
+    - <HS = `r sum(dat$edu == "<HS")`
+    - HS = `r sum(dat$edu == "HS")`
+    - BA = `r sum(dat$edu == "BA")`
+    - Col = `r sum(dat$edu == "Col")`
+    - AD = `r sum(dat$edu == "AD")`
+    - MA = `r sum(dat$edu == "MA")`
+    - PhD = `r sum(dat$edu == "PhD")`
+    - Other = `r sum(dat$edu == "O")`
+
+-   Relationship Status
+    - Single (NM) = `r sum(dat$relstat == "Snm")`
+    - Dating = `r sum(dat$relstat == "Dat")`
+    - Married = `r sum(dat$relstat == "M")`
+    - Divorced = `r sum(dat$relstat == "Div")`
+    - Widow(er) = `r sum(dat$relstat == "W")`
+
+
+```{r, Demographics, echo=FALSE, include=TRUE, warning=FALSE}
+hist.age <- ggplot(data=dat, aes(x=age,)) +
+  geom_histogram(stat = "count", binwidth = 5) + theme_classic() 
+
+barplot.gndr <- ggplot(data=dat, aes(x=gndr,)) +
+  geom_bar(stat = "count") + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+barplot.work <- ggplot(data=dat, aes(x=work,)) +
+  geom_bar(stat = "count") + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+barplot.race <- ggplot(data=dat, aes(x=race,)) +
+  geom_bar(stat = "count") + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+barplot.edu <- ggplot(data=dat, aes(x=edu,)) +
+  geom_bar(stat = "count") + 
+  theme_classic()
+
+barplot.relstat <- ggplot(data=dat, aes(x=relstat,)) +
+  geom_bar(stat = "count") + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+grid.arrange(barplot.edu, barplot.gndr, barplot.race, barplot.relstat, barplot.work, hist.age, ncol=3, nrow=2)
+```
+
+## Frequency statistics
+
+Intent conditions and political orientation (as measured by self-report slider)
+
+```{r, frequency statistics, echo=FALSE, include=TRUE, warning=FALSE}
+polornt.hist <- ggplot(data=dat, aes(x=polornt,)) +
+  geom_histogram(stat = "count") + theme_classic() 
+
+
+intcond.hist <- ggplot(data=dat, aes(x=Cond_int,)) +
+  geom_histogram(stat = "count") + theme_classic() 
+
+grid.arrange(polornt.hist, intcond.hist, ncol = 2, nrow = 1)
+```
+
+# MJI
+
+```{r, echo=FALSE, warning=FALSE}
+mji1.hist <- ggplot(data=dat, aes(x=,mji.F1)) +
+  geom_histogram(stat = "count", bins = 17) + theme_classic() + geom_vline(aes(xintercept=mean(mji.F1)))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+mji.hist <- ggplot(data=dat, aes(x=,mji)) +
+  geom_histogram(stat = "count", bins = 15) + theme_classic() + geom_vline(aes(xintercept=mean(mji)))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+mji2.hist <- ggplot(data=dat, aes(x=,mji.F2)) +
+  geom_histogram(stat = "count", bins=15) + theme_classic() + geom_vline(aes(xintercept=mean(mji.F2)))
+```
+
+```{r,}
+grid.arrange(mji.hist, mji1.hist, mji2.hist, ncol = 3, nrow = 1)
+```
+
+# ABPC
+
+```{r, echo=FALSE, warning=FALSE}
+abpc.hist <- ggplot(data=dat, aes(x=,abpc)) +
+  geom_histogram(stat = "count") + theme_classic() + xlim(1,5)
+
+abpc1.hist <- ggplot(data=dat, aes(x=,abpc1)) +
+  geom_histogram(stat = "count") + theme_classic() + xlim(1,5)
+
+abpc2.hist <- ggplot(data=dat, aes(x=,abpc2)) +
+  geom_histogram(stat = "count") + theme_classic() + xlim(1,5)
+
+abpc3.hist <- ggplot(data=dat, aes(x=,abpc3)) +
+  geom_histogram(stat = "count") + theme_classic() + xlim(1,5)
+
+grid.arrange(abpc.hist, abpc1.hist, abpc2.hist, abpc3.hist, ncol=4, nrow=1)
+
+```
+
+# Skewness & Kurtosis
+
+As you can see, the MJI (especially factor 1) is positively skewed. To address this, we employ both a log transformation and a square transformation to determine if the skewness can be brought to acceptable levels.
+
+### Skewness (without transformation)
+
+MJI
+
+```{r, }
+skewness(dat$mji)
+```
+
+MJI F1
+
+```{r, }
+skewness(dat$mji.F1)
+```
+
+MJI F2
+
+```{r, }
+skewness(dat$mji.F2)
+```
+
+### Log Transofrmation
+
+MJI
+
+```{r, }
+skewness(dat$log.mji)
+```
+
+MJI F1
+
+```{r, }
+skewness(dat$log.mjif1)
+```
+
+MJI F2
+
+```{r, }
+skewness(dat$log.mjif2)
+```
+
+### Square Transformation
+
+MJI
+
+```{r, }
+skewness(dat$sqr.mji)
+```
+
+MJI F1
+
+```{r, }
+skewness(dat$sqr.mjif1)
+```
+
+MJI F2
+
+```{r, }
+skewness(dat$sqr.mjif2)
+```
+
+### Kurtosis (without transformation)
+
+MJI
+
+```{r, }
+kurtosis(dat$mji)
+```
+
+MJI F1
+
+```{r, }
+kurtosis(dat$mji.F1)
+```
+
+MJI F2
+
+```{r, }
+kurtosis(dat$mji.F2)
+```
+
+### Log Transofrmation
+
+MJI
+
+```{r, }
+kurtosis(dat$log.mji)
+```
+
+MJI F1
+
+```{r, }
+kurtosis(dat$log.mjif1)
+```
+
+MJI F2
+
+```{r, }
+kurtosis(dat$log.mjif2)
+```
+
+### Square Transformation
+
+MJI
+
+```{r, }
+kurtosis(dat$sqr.mji)
+```
+
+MJI F1
+
+```{r, }
+kurtosis(dat$sqr.mjif1)
+```
+
+MJI F2
+
+```{r, }
+kurtosis(dat$sqr.mjif2)
+```
+
+
+## Internal Consistency
+
+```{r, Internal Consistency, echo=FALSE}
+mji.a <- dat %>% dplyr::select(F1.1, F1.2, F2.2, F2.3)
+
+mjif1.a <- dat %>% dplyr::select(F1.1, F1.2)
+
+mjif2.a <- dat %>% dplyr::select(F2.2, F2.3)
+
+
+abpc.all <- dat %>% dplyr::select(abpc.1, abpc.2, abpc.3, abpc.4, abpc.5,
+                                     abpc.6, abpc.7, abpc.8, abpc.9, abpc.10,
+                                     abpc.11, abpc.12, abpc.13, abpc.14,
+                                     abpc.15, abpc.16, abpc.17, abpc.18, 
+                                     abpc.19, abpc.20, abpc.21, abpc.22,
+                                     abpc.23, abpc.24, abpc.25, abpc.26, 
+                                     abpc.27, abpc.28, abpc.29, abpc.30,
+                                     abpc.31, abpc.32, abpc.33)
+abpc.scale1 <- dat %>% dplyr::select(abpc.1, abpc.2, abpc.3, abpc.4, abpc.5,
+                                     abpc.6, abpc.7, abpc.8, abpc.9, abpc.10,
+                                     abpc.11, abpc.12, abpc.13, abpc.14,
+                                     abpc.15, abpc.16, abpc.17, abpc.18)
+abpc.scale2 <- dat %>% dplyr::select(abpc.19, abpc.20, abpc.21, abpc.22,
+                                     abpc.23, abpc.24, abpc.25, abpc.26)
+abpc.scale3 <- dat %>% dplyr::select(abpc.27, abpc.28, abpc.29, abpc.30,
+                                     abpc.31, abpc.32, abpc.33)
+
+mji.alpha <- cronbach.alpha(mji.a)
+mjif1.alpha <- cronbach.alpha(mjif1.a)
+mjif2.alpha <- cronbach.alpha(mjif2.a)
+
+abpc.alpha <- cronbach.alpha(abpc.all)
+abpc.1.alpha <- cronbach.alpha(abpc.scale1)
+abpc.2.alpha <- cronbach.alpha(abpc.scale2)
+abpc.3.alpha <- cronbach.alpha(abpc.scale3)
+```
+
+## MJI
+
+Full index
+
+```{r, mji, echo=FALSE}
+mji.alpha
+```
+
+Factor 1
+
+```{r, echo=FALSE}
+mjif1.alpha
+```
+
+Factor 2
+
+```{r, echo=FALSE}
+mjif2.alpha
+```
+
+## MJI factor 2 has poor internal consistency, lets find our why.
+- Mean MJI item F1.1 = `r mean(dat$F1.1)`
+    - "To what extent were JG’s actions intentional?"
+    
+- Mean MJI item F1.2 = `r mean(dat$F1.2)`
+    - "To what extent can one say that JG did what they did on purpose?"
+    
+- Mean MJI item F2.1 = `r mean(dat$F2.1)`
+    - "How positively should JG be judged?"
+    
+- Mean MJI item F2.2 = `r mean(dat$F2.2)`
+    - "How negatively should JG be judged?"
+    
+- Mean MJI item F2.3 = `r mean(dat$F2.3)`
+    - "How much blame should JG receive as a result of their actions?"
+    
+- Mean MJI item F2.4 = `r mean(dat$F2.4)`
+    - "Even if no one ever finds out what they did, JG will get what they deserve."
+
+```{r, }
+bar.F1.1 <- ggplot(data=dat, aes(x=F1.1)) +
+          geom_bar(stat = "count") + 
+          theme_classic() + 
+          theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+bar.F1.2 <- ggplot(data=dat, aes(x=F1.2)) +
+          geom_bar(stat = "count") + 
+          theme_classic() + 
+          theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+bar.F2.1 <- ggplot(data=dat, aes(x=F2.1)) +
+          geom_bar(stat = "count") + 
+          theme_classic() + 
+          theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+bar.F2.2 <- ggplot(data=dat, aes(x=F2.2)) +
+          geom_bar(stat = "count") + 
+          theme_classic() + 
+          theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+bar.F2.3 <- ggplot(data=dat, aes(x=F2.3)) +
+          geom_bar(stat = "count") + 
+          theme_classic() + 
+          theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+bar.F2.4 <- ggplot(data=dat, aes(x=F2.4)) +
+          geom_bar(stat = "count") + 
+          theme_classic() + 
+          theme(axis.text.x = element_text(angle =60 , vjust = 0.5, hjust=.5)) 
+
+grid.arrange(bar.F1.1, bar.F1.2, bar.F2.1, bar.F2.2, bar.F2.3, bar.F2.4, ncol = 3, nrow = 2)
+```
+
+F2.1/F2.4 seem to be the  issue. Lets investigate
+
+```{r, }
+df.mji <- data.frame(dat$F1.1, dat$F1.2, dat$F2.1, dat$F2.2, dat$F2.3, dat$F2.4)
+mji.cor.matrix <- cor(df.mji, method = "pearson", use = "complete.obs")
+
+p.mat <- cor_pmat(df.mji)
+```
+
+Visualize Correlation Matrix
+
+```{r, }
+ggcorrplot(mji.cor.matrix,hc.order = FALSE,
+     outline.col = "white", p.mat = p.mat)
+```
+ 
+ Conclusion: There is very little item intercorrelation for F2.1 and F2.4 with the remainder of the items.
+ 
+ - The items "How positively should JG be judged?" and "Even if no one ever finds out what they did, JG will get what they deserve." seem to be problematic for our study.
+ 
+    - My guess is that F2.1 was misinterpreted by some respondents (bimodal distribution), and F2.4 is an assessment of the respondents 'Just World' beliefs, not anything to do with the respondents perception of actor moral culpability. For this reason I will remove these items from the analyses. 
+    
+## ABPC
+
+Full measure
+
+```{r, ABPC, echo=FALSE}
+abpc.alpha
+```
+
+Subscale 1: Libertarian Independence
+
+```{r, echo=FALSE}
+abpc.1.alpha
+```
+
+Subscale 2: Religious Traditionalism
+
+```{r, echo=FALSE}
+abpc.2.alpha
+```
+
+Subscale 3: Ethnic Separateness
+
+```{r, echo=FALSE}
+abpc.3.alpha
+```
+
+## Assumption Check: 2-Factor MJI
+
+It is assumed that the MJI is divisible into 2 factors, F1 is composed of items related to the actors intentionality (items F1.1 & F1.2), F2 is composed of more emotional/valence related items (items F2.1, F2.2, F2.3, F2.4).
+
+```{r, echo=FALSE}
+ev <- eigen(cor(dat.mji))
+nS <- nScree(ev$values)
+plotnScree(nS, legend = F)
+```
+
+### Eigenvalues
+
+```{r, echo=FALSE}
+print(ev$values)
+```
+
+### Factor Loadings
+
+```{r, echo=FALSE}
+fit.mji <- factanal(dat.mji.full, 2, rotation = "promax")
+print(fit.mji, digits = 2, cutoff = 0.3, sort = T)
+```
+
+## Assumption Check: 3-Factor ABPC
+
+It is assumed that the ABPC is divisible into 3 factors: Masculine Independence (items 1-18), Religious Individualism (items 19-26), and Ethnic Separateness (items 27-33).
+
+```{r, echo=FALSE}
+### Scree plot
+ev.abpc <- eigen(cor(dat.abpc))
+nS.abpc <- nScree(ev.abpc$values)
+plotnScree(nS.abpc, legend = F)
+```
+
+### EigenValues
+
+```{r, echo=FALSE}
+print(ev.abpc$values)
+```
+
+### Factor Loadings
+
+```{r, echo=FALSE}
+fit.abpc <- factanal(dat.abpc, 6, rotation = "promax")
+print(fit.abpc, digits = 2, cutoff = 0.3, sort = T)
+```
+
+## Power Analysis
+
+```{r power analysis, echo=FALSE, include=F}
+#Power analysis for linear modeling 
+# Enter 3 of the following, and the eqn will output the 4th.
+# 1. sample size
+# 2. effect size
+# 3. significance level = P(Type I error) = probability of finding an effect that is not there
+# 4. power = 1 - P(Type II error) = probability of finding an effect that is there
+#
+# 'u' and 'v' are the numerator and denominator degrees of freedom 
+# 'f2' is the effect size measure
+#   Cohen suggests f2 values of 0.02, 0.15, and 0.35 represent small, medium, and large effect sizes.
+
+pwr.f2.test(u = 4, v = 748, f2 = 0.5, sig.level = 0.05, power =)
+
+#For explanations and other kinds of power analyses, see https://www.statmethods.net/stats/power.html
+
+```
+
+# ABPC\*polornt correlation
+
+```{r, ABPC * Polornt corr, echo=FALSE}
+cor.test(dat$polornt, dat$abpc, method=c("pearson", "kendall", "spearman"))
+```
+
+# Linear Modeling
+
+## Assumption Check: Intentionality
+
+We designs each of the 4 conditions to be more or less intentional. We assume BA is the least intentional, BP is the most intentional, and PIo and DIo are somewhere in between. The following analysis seeks to determine if that is assumption manifests in the data.
+
+```{r, , echo=FALSE, include=T}
+mdl.int <- aov(mean.mjif1 ~ Cond_int, data = dat)
+summary(mdl.int)
+TukeyHSD(mdl.int)
+```
+
+```{r, , echo=FALSE, include=T}
+plot.int <- ggplot(data=dat, aes(x=Cond_int, y=mean.mjif1)) +
+            geom_boxplot(width=0.3)
+plot.int
+```
+
+## Moderation Analysis
+
+The goal of this analysis is to determine the moderation effect of the first MJI factor. Most of the observed effects have been in the BA condition, thus we seek to answer the question "do participants who believed the BA condition to still be highly intentional (high mji.f1 in BA condition) show a tweet\*political_orientation interaction effect when compared to participants who perceive low intentionality"? We use the MJI intent factor as the moderator and the valence factor as the DV. Tweets and political orientation are inputted as predictor variables.
+
+## Full model
+
+```{r, echo=FALSE, include=T}
+# Moderation analysis is used to examine if the effect of an independent variable on the dependent variable is the same across different levels of another independent variable. Explained another way, moderation occurs when the effect of the predictor (X) on the outcome (Y) depends on the moderator (Z).
+
+# As I am testing an interaction between a continuous variable (MJI F1) and a variable (continuous or categorical) (Tweets and Political orientation), the continuous variable should be centered to avoid multicollinearity issues, which could affect model convergence and/or inflate the standard errors. Centering is done in the 'data cleaning' section.
+
+mod.mdl.ba <- lm(mc_mjif2 ~ mc_polornt*mc_mjif1*tweets, subset(dat, Cond_int == "BA"))
+summary(mod.mdl.ba)
+```
+
+### polornt = Left
+
+```{r,}
+mod.mdl.ba.l <- lm(mc_mjif2 ~ mc_polornt*mc_mjif1*tweets, subset(dat, Cond_int == "BA" & L.R == "L"))
+summary(mod.mdl.ba.l)
+```
+
+### polornt = Right
+
+```{r,}
+mod.mdl.ba.r <- lm(mc_mjif2 ~ mc_polornt*mc_mjif1*tweets, subset(dat, Cond_int == "BA" & L.R == "R"))
+summary(mod.mdl.ba.r)
+```
+
+A simple slopes graph for mc_polornt\*mc_mjif1
+
+```{r, include=F}
+# Simple Slopes Plots
+mod.mdl.plot1 <- plotCurves(mod.mdl.ba, plotx="mc_polornt",
+                  modx="mc_mjif1", modxVals="std.dev.",
+                  interval="confidence", main = "Simple Slopes")
+mod.mdl.plot1
+```
+
+Traditional simple slopes is impossible for MJI.F1 as its mean+1SD exceeds the maximum value of the MJI scale. Additionally, traditional simple slopes does not permit the use of dichotomous variables.
+
+Instead, we can use MJI.F1 \>= 4 compared to MJI.F1 \< 4.
+
+### mjif1 \>= 4
+
+```{r,}
+mdl.ba.mjif1.5 <- lm(mc_mjif2 ~ mc_polornt*tweets, data = subset(dat, Cond_int == "BA" & mean.mjif1 >= 4))
+summary(mdl.ba.mjif1.5)
+
+plot.BA.f1Greater4 <-  ggplot(subset(dat, Cond_int == "BA" & mean.mjif1 >= 4)) +
+    aes(x = mc_polornt, y = mc_mjif2, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + theme_classic() + ggtitle("*BA: MJI.F1 >= 4")
+```
+
+### mjif1 \< 4
+
+```{r,}
+mdl.ba.mjif1.not5 <- lm(mc_mjif2 ~ mc_polornt*tweets, data = subset(dat, Cond_int == "BA" & mean.mjif1 < 4))
+summary(mdl.ba.mjif1.not5)
+
+plot.BA.f1Less4 <-  ggplot(subset(dat, Cond_int == "BA" & mean.mjif1 < 4)) +
+    aes(x = mc_polornt, y = mc_mjif2, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + theme_classic() + ggtitle("BA: MJI.F1 < 4")
+```
+
+```{r,}
+grid.arrange(plot.BA.f1Less4, plot.BA.f1Greater4, ncol = 2, nrow = 1)
+```
+
+## 4-ITEM MJI - sqr transformed - Full model using ABPC as a measure of political orientation
+
+Full cases =`r nrow(dat)`
+
+```{r, echo=FALSE}
+mdl.2 <- lm(sqr.mji ~ PI + DI + tweets + abpc +
+              PI*DI + PI*tweets + PI*abpc + DI*tweets + DI*abpc + tweets*abpc +
+              PI*DI*tweets + PI*DI*abpc + PI*tweets*abpc + DI*tweets*abpc, data = dat)
+summary(mdl.2)
+```
+
+#### Residual Density and Q-Q plots
+
+```{r, , echo=FALSE, include=T}
+# Model
+mdl2 <- aov(sqr.mji ~ PI + DI + tweets + abpc +
+              PI*DI + PI*tweets + PI*abpc + DI*tweets + DI*abpc + tweets*abpc +
+              PI*DI*tweets + PI*DI*abpc + PI*tweets*abpc + DI*tweets*abpc, data = dat)
+
+# Step 1: Compute residuals & convert to absolute values
+res.mdl2 <- resid(mdl2)                 # List of residuals
+plot(density(res.mdl2))                     # A density plot
+qqnorm(res.mdl2 )                           # A quantile normal plot - good for checking normality
+qqline(res.mdl2 )
+
+dat$resids.abs.mdl2 <- abs(res.mdl2)  # Convert residuals to absolute values
+```
+
+#### ANOVA and Tukey's on model residuals
+
+```{r, , echo=FALSE, include=T}
+# Step 2: Run ANOVA and Tukey's
+lvn.mdl2 <- aov(resids.abs.mdl2 ~ Cond_int, data = dat)
+summary(lvn.mdl2)
+TukeyHSD(lvn.mdl2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.2)
+```
+
+```{r, echo=FALSE}
+#Visualize 2 way interaction
+
+#PIxTweet
+plot.PIxTweet <-  ggplot(data = dat) +
+    aes(x = PI, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + theme_classic() + ggtitle("PIxTweet") 
+
+#DIxTweet
+plot.DIxtweet <-  ggplot(data = dat) +
+    aes(x = DI, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + theme_classic() + ggtitle("DIxTweet") 
+
+
+p<-ggplot(dat, aes(x=DI, y=sqr.mji, fill=tweets)) +
+  geom_boxplot(position=position_dodge(1)) + theme_classic() + geom_jitter(shape=16, position=position_jitter(0.2),)
+p
+
+#ABPCxTweet
+plot.ABPCxTweet <-  ggplot(data = dat) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + theme_classic() + ggtitle("ABPCxTweet") + xlim(0,5)
+
+grid.arrange(plot.PIxTweet, plot.DIxtweet, plot.ABPCxTweet, ncol =3, nrow =1) 
+```
+
+
+# Simple effects (split by intent conditions and ABPC)
+
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA"))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO"))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO"))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP"))`
+
+### BA
+
+```{r, echo=FALSE, include=TRUE}
+# BA
+mdl.ba.abpc <- lm(sqr.mji ~ tweets + abpc + tweets*abpc, data = subset(dat, Cond_int == "BA"))
+summary(mdl.ba.abpc)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.abpc)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=TRUE}
+# PIO
+mdl.PIo.abpc <- lm(sqr.mji ~ tweets + abpc + tweets*abpc, data = subset(dat, Cond_int == "PIO"))
+summary(mdl.PIo.abpc)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.abpc)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=TRUE}
+# DIO
+mdl.DIo.abpc <- lm(sqr.mji ~ tweets + abpc + tweets*abpc, data = subset(dat, Cond_int == "DIO"))
+summary(mdl.DIo.abpc)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.abpc)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=TRUE}
+# BP
+mdl.BP.abpc <- lm(sqr.mji ~ tweets + abpc + tweets*abpc, data = subset(dat, Cond_int == "BP"))
+summary(mdl.BP.abpc)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.abpc)
+```
+
+```{r, echo=FALSE}
+#Visualize within each cell for ABPC 
+#BA
+plot.BA.abpc <-  ggplot(subset(dat, Cond_int %in% c("BA"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA")  + xlim(1,5)
+
+#PIO
+plot.PIO.abpc <-  ggplot(subset(dat, Cond_int %in% c("PIO"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(1,5)
+
+#DIO
+plot.DIO.abpc <-  ggplot(subset(dat, Cond_int %in% c("DIO"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(1,5)
+
+#BP
+plot.BP.abpc <-  ggplot(subset(dat, Cond_int %in% c("BP"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(1,5)
+
+grid.arrange(plot.BP.abpc, plot.DIO.abpc, plot.PIO.abpc, plot.BA.abpc, ncol =2, nrow =2)
+```
+
+## Left of midpoint (ABPC \< 2)
+
+-   Full cases =`r nrow(subset(dat, abpc < med.abpc))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc < med.abpc))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc < med.abpc))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc < med.abpc))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc < med.abpc))`
+
+### Full model
+
+```{r, }
+mdl.left.abpc <- lm(sqr.mji ~ PI*DI*tweets, data = subset(dat, abpc < med.abpc))
+summary(mdl.left.abpc)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.left.abpc)
+```
+
+### BA
+
+```{r, echo=FALSE, include=TRUE}
+# BA
+mdl.ba.l.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "BA" & abpc < med.abpc))
+summary(mdl.ba.l.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.l.2)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=TRUE}
+# PIO
+mdl.PIo.l.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "PIO" & abpc < med.abpc))
+summary(mdl.PIo.l.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.l.2)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=TRUE}
+# DIO
+mdl.DIo.l.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "DIO" & abpc < med.abpc))
+summary(mdl.DIo.l.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.l.2)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=TRUE}
+# BP
+mdl.BP.l.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "BP" & abpc < med.abpc))
+summary(mdl.BP.l.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.l.2)
+```
+
+```{r, echo=FALSE}
+#Visualize within each cell for ABPC < 2
+#BA
+plot.BA.abpc.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BA"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA")  + xlim(1,2)
+
+#PIO
+plot.PIO.abpc.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("PIO"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(1,2)
+
+#DIO
+plot.DIO.abpc.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("DIO"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(1,2)
+
+#BP
+plot.BP.abpc.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BP"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(1,2)
+
+grid.arrange(plot.BP.abpc.L, plot.DIO.abpc.L, plot.PIO.abpc.L, plot.BA.abpc.L, ncol =2, nrow =2)
+```
+
+## RIGHT of midpoint (ABPC \> 2)
+
+-   Full cases =`r nrow(subset(dat, abpc >= med.abpc))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc >= med.abpc))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc >= med.abpc))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc >= med.abpc))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc >= med.abpc))`
+
+### Full model
+
+```{r, }
+mdl.right.abpc <- lm(sqr.mji ~ PI*DI*tweets, data = subset(dat, abpc >= med.abpc))
+summary(mdl.right.abpc)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.right.abpc)
+```
+
+### BA
+
+```{r, echo=FALSE, include=TRUE}
+# BA
+mdl.ba.r.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "BA" & abpc >= med.abpc))
+summary(mdl.ba.r.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.r.2)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=TRUE}
+# PIO
+mdl.PIo.r.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "PIO" & abpc >= med.abpc))
+summary(mdl.PIo.r.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.r.2)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=TRUE}
+# DIO
+mdl.DIo.r.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "DIO" & abpc >= med.abpc))
+summary(mdl.DIo.r.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.r.2)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=TRUE}
+# BP
+mdl.BP.r.2 <- lm(sqr.mji ~ tweets, data = subset(dat, Cond_int == "BP" & abpc >= med.abpc))
+summary(mdl.BP.r.2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.r.2)
+```
+
+```{r, echo=FALSE}
+#Visualize within each cell for ABPC > 2
+#BA
+plot.BA.abpc.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BA"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA")  + xlim(2,5)
+
+#PIO
+plot.PIO.abpc.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("PIO"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(2,5)
+
+#DIO
+plot.DIO.abpc.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("DIO"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(2,5)
+
+#BP
+plot.BP.abpc.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BP"))) +
+    aes(x = abpc, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP")  + xlim(2,5)
+
+grid.arrange(plot.BP.abpc.R, plot.DIO.abpc.R, plot.PIO.abpc.R, plot.BA.abpc.R, ncol =2, nrow =2)
+```
+
+## Left of midpoint (ABPC \< 2) w/ ABPC factor 1 (LI)
+
+-   Full cases =`r nrow(subset(dat, abpc.mi < med.abpc.mi))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc.mi < med.abpc.mi))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc.mi < med.abpc.mi))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc.mi < med.abpc.mi))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc.mi < med.abpc.mi))`
+
+### Full model
+
+```{r, }
+mdl.left.abpcMI <- lm(sqr.mji ~ abpc*PI*DI*tweets, data = subset(dat, abpc.mi < med.abpc.mi))
+summary(mdl.left.abpcMI)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.left.abpcMI)
+```
+
+### BA
+
+```{r, echo=FALSE, include=TRUE}
+# BA
+mdl.ba.l.abpcf1 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BA" & abpc.mi < med.abpc.mi))
+summary(mdl.ba.l.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.l.abpcf1)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=TRUE}
+# PIO
+mdl.PIo.l.abpcf1  <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "PIO" & abpc.mi < med.abpc.mi))
+summary(mdl.PIo.l.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.l.abpcf1)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=TRUE}
+# DIO
+mdl.DIo.l.abpcf1 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "DIO" & abpc.mi < med.abpc.mi))
+summary(mdl.DIo.l.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.l.abpcf1)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=TRUE}
+# BP
+mdl.BP.l.abpcf1 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BP" & abpc.mi < med.abpc.mi))
+summary(mdl.BP.l.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.l.abpcf1)
+```
+
+```{r, echo=FALSE, include=T}
+#Visualize within each cell for ABPC.F1 < 2
+#BA
+plot.BA.abpcf1.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BA"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA") + xlim(1,2)
+
+#PIO
+plot.PIO.abpcf1.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("PIO"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(1,2)
+
+#DIO
+plot.DIO.abpcf1.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("DIO"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(1,2)
+
+#BP
+plot.BP.abpcf1.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BP"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(1,2)
+
+grid.arrange(plot.BP.abpcf1.L, plot.DIO.abpcf1.L, plot.PIO.abpcf1.L, plot.BA.abpcf1.L, ncol =2, nrow =2)
+```
+
+## RIGHT of midpoint (ABPC \> 2) w/ ABPC factor 1 (LI)
+
+-   Full cases =`r nrow(subset(dat, abpc >= med.abpc.mi))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc >= med.abpc.mi))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc >= med.abpc.mi))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc >= med.abpc.mi))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc >= med.abpc.mi))`
+
+### Full model
+
+```{r, }
+mdl.right.abpcMI <- lm(sqr.mji ~ abpc*PI*DI*tweets, data = subset(dat, abpc.mi >= med.abpc.mi))
+summary(mdl.right.abpcMI)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.right.abpcMI)
+```
+
+### BA
+
+```{r, echo=FALSE, include=T}
+# BA
+mdl.ba.r.abpcf1 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BA" & abpc.mi >= med.abpc.mi))
+summary(mdl.ba.r.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.r.abpcf1)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=T}
+# PIO
+mdl.PIo.r.abpcf1 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "PIO" & abpc.mi >= med.abpc.mi))
+summary(mdl.PIo.r.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.r.abpcf1)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=T}
+# DIO
+mdl.DIo.r.abpcf1 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "DIO" & abpc.mi >= med.abpc.mi))
+summary(mdl.DIo.r.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.r.abpcf1)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=T}
+# BP
+mdl.BP.r.abpcf1 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BP" & abpc.mi >= med.abpc.mi))
+summary(mdl.BP.r.abpcf1)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.r.abpcf1)
+```
+
+```{r, echo=FALSE, include=T}
+#Visualize within each cell for ABPC.F1 > 2
+#BA
+plot.BA.abpcf1.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BA"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA") + xlim(2,5)
+
+#PIO
+plot.PIO.abpcf1.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("PIO"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(2,5)
+
+#DIO
+plot.DIO.abpcf1.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("DIO"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(2,5)
+
+#BP
+plot.BP.abpcf1.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BP"))) +
+    aes(x = abpc1, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(2,5)
+
+grid.arrange(plot.BP.abpcf1.R, plot.DIO.abpcf1.R, plot.PIO.abpcf1.R, plot.BA.abpcf1.R, ncol =2, nrow =2)
+```
+
+## Left of midpoint (ABPC \< 2) w/ ABPC factor 2 (RT)
+
+-   Full cases =`r nrow(subset(dat, abpc.rt < med.abpc.rt))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc.rt < med.abpc.rt))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc.rt < med.abpc.rt))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc.rt < med.abpc.rt))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc.rt < med.abpc.rt))`
+
+### Full model
+
+```{r, }
+mdl.left.abpcRT <- lm(sqr.mji ~ abpc*PI*DI*tweets, data = subset(dat, abpc.rt < med.abpc.rt))
+summary(mdl.left.abpcRT)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.left.abpcRT)
+```
+
+### BA
+
+```{r, echo=FALSE, include=T}
+# BA
+mdl.ba.l.abpcf2 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BA" & abpc.rt < med.abpc.rt))
+summary(mdl.ba.l.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.l.abpcf2)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=T}
+# PIO
+mdl.PIo.l.abpcf2  <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "PIO" & abpc.rt < med.abpc.rt))
+summary(mdl.PIo.l.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.l.abpcf2)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=T}
+# DIO
+mdl.DIo.l.abpcf2 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "DIO" & abpc.rt < med.abpc.rt))
+summary(mdl.DIo.l.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.l.abpcf2)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=T}
+# BP
+mdl.BP.l.abpcf2 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BP" & abpc.rt < med.abpc.rt))
+summary(mdl.BP.l.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.l.abpcf2)
+```
+
+```{r, echo=FALSE, include=T}
+#Visualize within each cell for ABPC.2 < 2
+#BA
+plot.BA.abpcf2.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BA"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA")+ xlim(1,2)
+
+#PIO
+plot.PIO.abpcf2.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("PIO"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(1,2)
+
+#DIO
+plot.DIO.abpcf2.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("DIO"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(1,2)
+
+#BP
+plot.BP.abpcf2.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BP"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(1,2)
+
+grid.arrange(plot.BP.abpcf2.L, plot.DIO.abpcf2.L, plot.PIO.abpcf2.L, plot.BA.abpcf2.L, ncol =2, nrow =2)
+```
+
+## RIGHT of midpoint (ABPC \> 2) w/ ABPC factor 2 (RT)
+
+-   Full cases =`r nrow(subset(dat, abpc.rt >= med.abpc.rt))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc.rt >= med.abpc.rt))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc.rt >= med.abpc.rt))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc.rt >= med.abpc.rt))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc.rt >= med.abpc.rt))`
+
+### Full model
+
+```{r, }
+mdl.right.abpcRT <- lm(sqr.mji ~ abpc*PI*DI*tweets, data = subset(dat, abpc.rt >= med.abpc.rt))
+summary(mdl.right.abpcRT)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.right.abpcRT)
+```
+
+### BA
+
+```{r, echo=FALSE, include=T}
+# BA
+mdl.ba.r.abpcf2 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BA" & abpc.rt >= med.abpc.rt))
+summary(mdl.ba.r.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.r.abpcf2)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=T}
+# PIO
+mdl.PIo.r.abpcf2 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "PIO" & abpc.rt >= med.abpc.rt))
+summary(mdl.PIo.r.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.r.abpcf2)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=T}
+# DIO
+mdl.DIo.r.abpcf2 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "DIO" & abpc.rt >= med.abpc.rt))
+summary(mdl.DIo.r.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.r.abpcf2)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=T}
+# BP
+mdl.BP.r.abpcf2 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BP" & abpc.rt >= med.abpc.rt))
+summary(mdl.BP.r.abpcf2)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.r.abpcf2)
+```
+
+```{r, echo=FALSE, include=T}
+#Visualize within each cell for ABPC.F2 > 2
+#BA
+plot.BA.abpcf2.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BA"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA") + xlim(2,5)
+
+#PIO
+plot.PIO.abpcf2.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("PIO"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(2,5)
+
+#DIO
+plot.DIO.abpcf2.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("DIO"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(2,5)
+
+#BP
+plot.BP.abpcf2.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BP"))) +
+    aes(x = abpc2, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(2,5)
+
+grid.arrange(plot.BP.abpcf2.R, plot.DIO.abpcf2.R, plot.PIO.abpcf2.R, plot.BA.abpcf2.R, ncol =2, nrow =2)
+```
+
+## Left of midpoint (ABPC \< 2) w/ ABPC factor 3 (ES)
+
+-   Full cases =`r nrow(subset(dat, abpc.es < med.abpc.es))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc.es < med.abpc.es))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc.es < med.abpc.es))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc.es < med.abpc.es))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc.es < med.abpc.es))`
+
+### Full model
+
+```{r, }
+mdl.left.abpcES <- lm(sqr.mji ~ abpc*PI*DI*tweets, data = subset(dat, abpc.es < med.abpc.es))
+summary(mdl.left.abpcES)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.left.abpcES)
+```
+
+### BA
+
+```{r, echo=FALSE, include=T}
+# BA
+mdl.ba.l.abpcf3 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BA" & abpc.es < med.abpc.es))
+summary(mdl.ba.l.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.l.abpcf3)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=T}
+# PIO
+mdl.PIo.l.abpcf3  <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "PIO" & abpc.es < med.abpc.es))
+summary(mdl.PIo.l.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.l.abpcf3)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=T}
+# DIO
+mdl.DIo.l.abpcf3 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "DIO" & abpc.es < med.abpc.es))
+summary(mdl.DIo.l.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.l.abpcf3)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=T}
+# BP
+mdl.BP.l.abpcf3 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BP" & abpc.es < med.abpc.es))
+summary(mdl.BP.l.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.l.abpcf3)
+```
+
+```{r, ,echo=FALSE, include=T}
+#Visualize within each cell for ABPC.3 < 2
+#BA
+plot.BA.abpcf3.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BA"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA") + xlim(1,2)
+
+#PIO
+plot.PIO.abpcf3.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("PIO"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(1,2)
+
+#DIO
+plot.DIO.abpcf3.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("DIO"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(1,2)
+
+#BP
+plot.BP.abpcf3.L <-  ggplot(subset(dat.abpc.L, Cond_int %in% c("BP"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(1,2)
+
+grid.arrange(plot.BP.abpcf3.L, plot.DIO.abpcf3.L, plot.PIO.abpcf3.L, plot.BA.abpcf3.L, ncol =2, nrow =2)
+```
+
+## RIGHT of midpoint (ABPC \> 2) w/ ABPC factor 3 (ES)
+
+-   Full cases =`r nrow(subset(dat, abpc.es >= med.abpc.es))`
+-   BA cases =`r nrow(subset(dat, Cond_int == "BA" & abpc.es >= med.abpc.es))`
+-   PIO cases =`r nrow(subset(dat, Cond_int == "PIO" & abpc.es >= med.abpc.es))`
+-   DIO cases =`r nrow(subset(dat, Cond_int == "DIO" & abpc.es >= med.abpc.es))`
+-   BP cases =`r nrow(subset(dat, Cond_int == "BP" & abpc.es >= med.abpc.es))`
+
+### Full model
+
+```{r, }
+mdl.right.abpcES <- lm(sqr.mji ~ abpc*PI*DI*tweets, data = subset(dat, abpc.es >= med.abpc.es))
+summary(mdl.right.abpcES)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.right.abpcES)
+```
+
+### BA
+
+```{r, echo=FALSE, include=T}
+# BA
+mdl.ba.r.abpcf3 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BA" & abpc.es >= med.abpc.es))
+summary(mdl.ba.r.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.ba.r.abpcf3)
+```
+
+### PIO
+
+```{r, , echo=FALSE, include=T}
+# PIO
+mdl.PIo.r.abpcf3 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "PIO" & abpc.es >= med.abpc.es))
+summary(mdl.PIo.r.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.PIo.r.abpcf3)
+```
+
+### DIO
+
+```{r, , echo=FALSE, include=T}
+# DIO
+mdl.DIo.r.abpcf3 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "DIO" & abpc.es >= med.abpc.es))
+summary(mdl.DIo.r.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.DIo.r.abpcf3)
+```
+
+### BP
+
+```{r, , echo=FALSE, include=T}
+# BP
+mdl.BP.r.abpcf3 <- lm(sqr.mji ~ abpc*tweets, data = subset(dat, Cond_int == "BP" & abpc.es >= med.abpc.es))
+summary(mdl.BP.r.abpcf3)
+```
+### Regression Coefficients
+```{r, }
+lm.beta(mdl.BP.r.abpcf3)
+```
+
+```{r, echo=FALSE, include=T}
+#Visualize within each cell for ABPC.F3 > 2
+#BA
+plot.BA.abpcf3.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BA"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BA") + xlim(2,5)
+
+#PIO
+plot.PIO.abpcf3.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("PIO"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("PIO") + xlim(2,5)
+
+#DIO
+plot.DIO.abpcf3.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("DIO"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("DIO") + xlim(2,5)
+
+#BP
+plot.BP.abpcf3.R <-  ggplot(subset(dat.abpc.R, Cond_int %in% c("BP"))) +
+    aes(x = abpc3, y = sqr.mji, color = tweets) +
+    stat_summary(fun = mean, geom = "point") + 
+    geom_smooth(method=lm) + ylim(1,25) + theme_classic() + ggtitle("BP") + xlim(2,5)
+
+grid.arrange(plot.BP.abpcf3.R, plot.DIO.abpcf3.R, plot.PIO.abpcf3.R, plot.BA.abpcf3.R, ncol =2, nrow =2)
+```
